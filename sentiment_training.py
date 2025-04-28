@@ -1,4 +1,5 @@
 import os
+import datetime
 import pickle
 import pandas as pd
 import numpy as np
@@ -22,25 +23,61 @@ NEW_DATA_PATH = "new_reddit_data.csv"
 
 # Defaults
 default_optimizer = "adam"
+default_learning_rate = 0.001
+default_batch_size = 64
 
 # User input prompts
 model_path = input(f"Enter model path (default: {MODEL_PATH}): ").strip()
 if not model_path:
     model_path = MODEL_PATH
-train_data = input(f"Enter model path (default: {NEW_DATA_PATH}): ").strip()
+
+train_data = input(f"Enter data path (default: {NEW_DATA_PATH}): ").strip()
 if not train_data:
     train_data = NEW_DATA_PATH
+
 optimizer_choice = input(f"Choose optimizer (adam, rmsprop, sgd) [default: {default_optimizer}]: ").strip().lower()
 if not optimizer_choice:
     optimizer_choice = default_optimizer
 
+learning_rate = input(f"Enter learning rate [default: {default_learning_rate}]: ").strip()
+if not learning_rate:
+    learning_rate = default_learning_rate
+else:
+    learning_rate = float(learning_rate)
+
+batch_size = input(f"Enter batch size [default: {default_batch_size}]: ").strip()
+if not batch_size:
+    batch_size = default_batch_size
+else:
+    batch_size = int(batch_size)
+
+# Create a log under logs
+os.makedirs("logs", exist_ok=True)
+timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+log_filename = f"logs/training_log_{timestamp}.txt"
+# Build log content
+log_content = f"""
+Training Session - {timestamp}
+-----------------------------------
+Model Path: {model_path}
+Data Path: {train_data}
+Optimizer: {optimizer_choice}
+Learning Rate: {learning_rate}
+Batch Size: {batch_size}
+-----------------------------------
+"""
+# Write log file
+with open(log_filename, "w") as f:
+    f.write(log_content)
+print(f"Training configuration saved to {log_filename}")
+
 # Map string to optimizer instance
 optimizer_map = {
-    "adam": Adam(),
-    "rmsprop": RMSprop(),
-    "sgd": SGD()
+    "adam": Adam(learning_rate=learning_rate),
+    "rmsprop": RMSprop(learning_rate=learning_rate),
+    "sgd": SGD(learning_rate=learning_rate)
 }
-optimizer = optimizer_map.get(optimizer_choice, Adam())
+optimizer = optimizer_map.get(optimizer_choice, Adam(learning_rate=learning_rate))
 
 # Load new data
 df = pd.read_csv(train_data)
@@ -72,7 +109,7 @@ if not (os.path.exists(model_path) and os.path.exists(TOKENIZER_PATH) and os.pat
 
     model.compile(loss='categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'])
     early_stop = EarlyStopping(monitor='loss', patience=2, restore_best_weights=True)
-    model.fit(X, y, epochs=5, batch_size=64, callbacks=[early_stop])
+    model.fit(X, y, epochs=5, batch_size=batch_size, callbacks=[early_stop])
 
     # Save everything
     model.save(model_path)
@@ -121,7 +158,7 @@ else:
 
     # Fine-tune 
     early_stop = EarlyStopping(monitor='loss', patience=2, restore_best_weights=True)
-    model.fit(X_train, y_train, epochs=3, batch_size=64, callbacks=[early_stop])
+    model.fit(X_train, y_train, epochs=3, batch_size=batch_size, callbacks=[early_stop])
 
     # Evaluate AFTER training 
     y_pred_after = model.predict(X_eval)
