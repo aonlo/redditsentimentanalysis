@@ -7,12 +7,19 @@ from sklearn.metrics import accuracy_score
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from sklearn.metrics import classification_report
+import shap
+from shap.maskers import Text
 
 # Paths
 MODEL_PATH = "new_reddit_model.keras"
 TOKENIZER_PATH = "tokenizer.pkl"
 ENCODER_PATH = "label_encoder.pkl"
 TEST_DATA_PATH = "extracted_test_data.csv"
+
+SHAP_SAMPLES_SIZE = 100
+SHAP_TOP_TOKENS = 3
+
+include_shap = input("Include SHAP Top Words Attribution? (y/n): ").strip().lower() == 'y'
 
 # Load model and tools
 model = load_model(MODEL_PATH)
@@ -68,4 +75,43 @@ plt.show()
 
 # Save predictions to CSV
 df.to_csv("manual_test_output.csv", index=False)
-print("\nPredictions saved to predictions_output.csv")
+print("\nPredictions saved to manual_test_output.csv")
+
+
+if include_shap:
+    # === SHAP Top Words Attribution ===
+    # Define function to explain text
+    def predict_fn(texts):
+        sequences = tokenizer.texts_to_sequences(texts)
+        padded = pad_sequences(sequences, maxlen=100)
+        return model.predict(padded)
+
+    # Use default whitespace masker
+    masker = Text()
+    explainer = shap.Explainer(predict_fn, masker)
+
+    # Run SHAP on all test comments (or sample if large)
+    sample_size = min(SHAP_SAMPLES_SIZE, len(df))
+    df_sample = df.sample(n=sample_size, random_state=42)
+    texts = df_sample['clean_comment'].tolist()
+    shap_values = explainer(texts)
+
+    # Extract top 5 contributing tokens for predicted class
+    important_tokens = []
+    for i, text in enumerate(texts):
+        pred_class = np.argmax(predict_fn([text])[0])
+        tokens = shap_values.data[i]
+        scores = shap_values.values[i]
+        class_scores = scores[:, pred_class]
+
+        # Pair tokens with scores and sort by |score| descending
+        top_tokens = sorted(zip(tokens, class_scores), key=lambda x: abs(x[1]), reverse=True)
+        top_words = [f"{tok}:{score:.3f}" for tok, score in top_tokens[:SHAP_TOP_TOKENS]]
+        important_tokens.append(', '.join(top_words))
+
+    # Add to DataFrame
+    df_sample['important_words'] = important_tokens
+
+    df_sample.to_csv("manual_test_shap_output.csv", index=False)
+    print("\nSHAP Top Words Attribution saved to manual_test_shap_output.csv")
+
