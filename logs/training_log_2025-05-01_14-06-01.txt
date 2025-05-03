@@ -1,0 +1,9 @@
+
+Training Session - 2025-05-01_14-06-01
+-----------------------------------
+Model Path: new_reddit_model.keras
+Data Path: new_reddit_data.csv
+Optimizer: adam
+Learning Rate: 0.001
+Batch Size: 64
+-----------------------------------
