@@ -176,3 +176,8 @@ cython_debug/
 # Models
 /models
 grid_search_results.csv
+
+# Plots and Analytics
+/plots
+/top_model_plots
+top_10_models.csv
