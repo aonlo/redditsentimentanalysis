@@ -1,11 +1,11 @@
 This repository includes:
-  The dataset Reddit_Data.csv
-  All training and evaluation scripts
-  Model prediction tools (manual_test.py)
-  SHAP explanation tools
-  Scripts for generating plots and analysis:
-    plot_hyperparameter_effects.py
-    rank_best_models.py
+- The dataset Reddit_Data.csv
+- All training and evaluation scripts
+- Model prediction tools (manual_test.py)
+- SHAP explanation tools
+- Scripts for generating plots and analysis:
+  - plot_hyperparameter_effects.py
+  - rank_best_models.py
 
 To reproduce our results, follow these steps:
 1. Clone the Repository
